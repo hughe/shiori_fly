@@ -1,0 +1,36 @@
+# Copy shiori from official image
+#
+# Was ghcr.io/go-shiori/shiori we are downgrading from v1.8.0 because
+# there is a bug with POSTing /api/bookmarks in v1.8.0.
+# https://github.com/go-shiori/shiori/issues/1176
+FROM ghcr.io/go-shiori/shiori:v1.7.4 AS shiori-source 
+
+# Build on Alpine
+#
+# The Shiori source container is a distro-less container. It basically
+# only contains the Shiori binary and the files named below. For
+# debugging, I really want something that's at least got a very small
+# distro in it and a shell.
+FROM alpine:3.24
+
+# Copy shiori binary and dependencies from official image
+COPY --from=shiori-source /usr/bin/shiori /usr/bin/shiori
+COPY --from=shiori-source /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=shiori-source /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+
+# Install bash and utilities
+RUN apk add --no-cache bash tar bzip2
+
+# Set environment
+ENV PORT=8080
+
+# The volume should be mounted here.
+ENV SHIORI_DIR=/mnt/shiori
+
+WORKDIR ${SHIORI_DIR}
+
+# Expose port
+EXPOSE ${PORT}
+
+ENTRYPOINT ["/usr/bin/shiori"]
+CMD ["server"]
