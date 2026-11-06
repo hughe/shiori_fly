@@ -1,9 +1,16 @@
 # Copy shiori from official image
 #
-# Was ghcr.io/go-shiori/shiori we are downgrading from v1.8.0 because
-# there is a bug with POSTing /api/bookmarks in v1.8.0.
-# https://github.com/go-shiori/shiori/issues/1176
-FROM ghcr.io/go-shiori/shiori:v1.7.4 AS shiori-source 
+# The Shiori version is a build arg so test and prod differ only by
+# their fly toml ([build.args] SHIORI_VERSION).
+#
+# Prod is pinned to v1.7.4 for now. v1.8.0 dropped the X-Session-Id
+# header (only Authorization: Bearer / the token cookie are accepted),
+# which broke Shiori Share. That was the "bug" in
+# https://github.com/go-shiori/shiori/issues/1176 (closed as a client
+# auth problem). Move to v1.8.0 once Shiori Share sends Bearer; see
+# TODO.md.
+ARG SHIORI_VERSION=v1.7.4
+FROM ghcr.io/go-shiori/shiori:${SHIORI_VERSION} AS shiori-source
 
 # Build on Alpine
 #
@@ -18,8 +25,10 @@ COPY --from=shiori-source /usr/bin/shiori /usr/bin/shiori
 COPY --from=shiori-source /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=shiori-source /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-# Install bash and utilities
-RUN apk add --no-cache bash tar bzip2
+# Install bash and utilities. sqlite is for inspecting / checking /
+# backing up the database (e.g. sqlite3 shiori.db "PRAGMA integrity_check;"
+# or ".backup" for a consistent copy while Shiori is running).
+RUN apk add --no-cache bash tar bzip2 sqlite
 
 # Set environment
 ENV PORT=8080
