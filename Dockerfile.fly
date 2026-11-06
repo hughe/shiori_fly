@@ -3,13 +3,10 @@
 # The Shiori version is a build arg so test and prod differ only by
 # their fly toml ([build.args] SHIORI_VERSION).
 #
-# Prod is pinned to v1.7.4 for now. v1.8.0 dropped the X-Session-Id
-# header (only Authorization: Bearer / the token cookie are accepted),
-# which broke Shiori Share. That was the "bug" in
-# https://github.com/go-shiori/shiori/issues/1176 (closed as a client
-# auth problem). Move to v1.8.0 once Shiori Share sends Bearer; see
-# TODO.md.
-ARG SHIORI_VERSION=v1.7.4
+# v1.8.0 requires Authorization: Bearer or the token cookie.
+# Web UI and Shiori Share were verified against test before prod rollout;
+# see TODO.md for backup and rollback details.
+ARG SHIORI_VERSION=v1.8.0
 FROM ghcr.io/go-shiori/shiori:${SHIORI_VERSION} AS shiori-source
 
 # Build on Alpine
